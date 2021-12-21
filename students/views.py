@@ -72,15 +72,6 @@ class ClassView(ModelViewSet):
         return Response(serializer.data)
 
 
-class StudentFilter(django_filters.FilterSet):
-    name = django_filters.CharFilter(lookup_expr='contains')
-    market = django_filters.CharFilter(lookup_expr='contains')
-    dormnumber = django_filters.CharFilter(lookup_expr='contains')
-    class Meta:
-        model = Student
-        fields = ['sex', 'cls']
-
-
 def download_excel_temp(request):
     response = FileResponse(
         open(settings.EXCEL_FIEL_PATH + '/学生信息模板.xlsx', 'rb'))
@@ -93,14 +84,23 @@ def download_excel_temp(request):
     response['Content-Disposition'] = file_name.encode('utf-8', 'ISO-8859-1')
     return response
 
+
+# class StudentFilter(django_filters.FilterSet):
+#     name = django_filters.CharFilter(lookup_expr='contains')
+#     market = django_filters.CharFilter(lookup_expr='contains')
+#     dormnumber = django_filters.CharFilter(lookup_expr='contains')
+#     class Meta:
+#         model = Student
+#         fields = ['name','market','sex','dormnumber', 'cls']
+
 class StudentView(ModelViewSet):
     queryset = Student.objects.all() #查询集
     serializer_class = StudentSerializer #指定序列化器
 
-    #指定使用 django-filter进行过滤查询
-    filter_backends = (filters.DjangoFilterBackend,)
-    #指定自定义的过滤器
-    filterset_class = StudentFilter
+    # #指定使用 django-filter进行过滤查询
+    # filter_backends = (filters.DjangoFilterBackend,)
+    # #指定自定义的过滤器
+    # filterset_class = StudentFilter
     def create(self, request, *args, **kwargs):
         self.serializer_class=StudentSerializerw
         return super(StudentView, self).create(request)
@@ -111,32 +111,70 @@ class StudentView(ModelViewSet):
     def list(self, request, *args, **kwargs):
         page = int(request.query_params.get('page'))
         pagesize= int(request.query_params.get('page_size'))
-        list = self.queryset.values()
-        list2=[]
+        # 先过滤后分页
+        name = request.query_params.get('name')
+        market = request.query_params.get('market')
+        depar_id= request.query_params.get('depar_id')
+        cls_id = request.query_params.get('cls')
+        # fdy_id= request.query_params.get('fdy_id')
+        # js_id= request.query_params.get('js_id')
+        sex = request.query_params.get('sex')
+        dormnumber = request.query_params.get('dormnumber')
+        serch = {}
+        serch['cls_id__in']=[]
+        ser = [{'value': name, 'value1': {'name__contains': name}},
+               {'value': market, 'value1': {'market__contains': market}},
+               # {'value': depar_id, 'value1': {'depar_id': depar_id}},
+               # {'value': cls_id, 'value1': {'cls_id': cls_id}},
+               {'value': dormnumber, 'value1': {'dormnumber': dormnumber}},
+               {'value': sex, 'value1': {'sex': sex}},
+               # {'value': js_id, 'value1': {'js_id': js_id}},
+               # {'value': fdy_id, 'value1': {'fdy_id': fdy_id}},
+               ]
+        for i in ser:
+            if i['value']is not None:
+                serch.update(i['value1'])
+        print(serch,'搜索的数据')
+        if cls_id:
+            serch['cls_id__in'].append(cls_id)
+        # elif js_id:
+        #     AdminUser.objects.get(id=js_id)
+        #     pass
+        # elif fdy_id:
+        #     AdminUser.objects.get(id=fdy_id).id
+        #     # Class_a.objects.filter(college=)
+        #     pass
+        elif depar_id:
+            allclass = Class_a.objects.filter(college=depar_id).values()
+            for k in allclass:
+                serch['cls_id__in'].append(k['id'])
+        # if depar_id is not None:
+        #     pass
+        # else :
+        if serch['cls_id__in']==[] and not cls_id and not depar_id:
+            del serch['cls_id__in']
+        if(serch)=={}:
+            list = Student.objects.filter().values()
+        else:
+            list = Student.objects.filter(**serch).values()
+        list2 = []
         for i in list:
             list2.append(i)
         for k in list2:
             cls = Class_a.objects.get(id=k['cls_id'])
-            k['department']=Department.objects.get(id=cls.college_id).name
-            k['clsname']=cls.name
+            k['department'] = Department.objects.get(id=cls.college_id).name
+            k['clsname'] = cls.name
             try:
                 CoursePlan.objects.get(classid_id=cls.id)
                 k['lecturer'] = AdminUser.objects.get(id=CoursePlan.objects.get(classid_id=cls.id).lecturer_id).name
-                k['counsellor'] = AdminUser.objects.get(id=CoursePlan.objects.get(classid_id=cls.id).counsellor_id).name
-                k['coursestate']='完成排课'
+                k['counsellor'] = AdminUser.objects.get(
+                    id=CoursePlan.objects.get(classid_id=cls.id).counsellor_id).name
+                k['coursestate'] = '完成排课'
             except:
                 k['coursestate'] = '暂未排课'
         total = len(list2)
-        #先过滤后分页
-        name= request.query_params.get('name')
-        market = request.query_params.get('market')
-        cls = request.query_params.get('cls')
-        sex = request.query_params.get('sex')
-        dormnumber = request.query_params.get('dormnumber')
-        if name is not None:
-            print(name,222)
-        list3 = list2[(page-1)*pagesize:page*pagesize]
-        data = {'data':list3,'count':total,'code':200}
+        list3 = list2[(page - 1) * pagesize:page * pagesize]
+        data = {'data': list3, 'count': total, 'code': 200}
         return Response(data)
 
 

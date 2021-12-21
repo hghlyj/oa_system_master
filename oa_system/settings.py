@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'register',
     'students',
     'course',
+    'schoolroll',
     'studentScore',
     'corsheaders',
     'django_filters',

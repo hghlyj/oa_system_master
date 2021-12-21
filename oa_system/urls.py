@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/', include('students.urls')),
     path('api/', include('course.urls')),
     path('api/', include('studentScore.urls')),
+    path('api/', include('schoolroll.urls')),
     path('api/login', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/login/refresh', TokenRefreshView.as_view(), name='token_refresh'),
 ]

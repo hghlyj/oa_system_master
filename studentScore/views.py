@@ -1,14 +1,18 @@
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
-from .models import PutIntoEffect,AwardedMarks,SubtractMarks,Disciplinetype,StudentScore
+
+from students.models import Student
+from .models import PutIntoEffect, AwardedMarks, SubtractMarks, Disciplinetype, StudentScore, Voice
 from rest_framework.response import Response
 from django_filters.rest_framework import FilterSet
 from rest_framework.viewsets import ModelViewSet, GenericViewSet
 import django_filters
 from collections import OrderedDict
 from django_filters import rest_framework as filters
-from .serializers import AwardedMarksSerializer,SubtractMarksSerializer,DisciplinetypeSerializer,SubtractMarksSerializerw,MarksListSerializer
+from .serializers import AwardedMarksSerializer, SubtractMarksSerializer, DisciplinetypeSerializer, MarksListSerializer, \
+	MarksListSerializert, VoiceSerializer
+
 
 class CustomPagination(PageNumberPagination):
 	page_size = 5 #每页显示的条数
@@ -109,32 +113,99 @@ class SubtractMarkss(ModelViewSet):
 	filter_backends = (filters.DjangoFilterBackend,)
 	filterset_class = SubtractMarkssFilter
 
-
 	def list(self, request, *args, **kwargs):
 		no = request.query_params.get('no')
 		if (no == '1'):
 			self.pagination_class = None  # 不分页
 		return super(SubtractMarkss,self).list(request)
 
-class SubtractMarkssw(ModelViewSet):
-	queryset = SubtractMarks.objects.all()  # 查询集
-	serializer_class = SubtractMarksSerializerw  # 序列化器
 
 
 class MarksListsFilter(FilterSet):
+	name = django_filters.CharFilter(lookup_expr='icontains')
+	market= django_filters.CharFilter(lookup_expr='icontains')
 	class Meta:
 		model = StudentScore
-		fields = ['state','name','depar','cls','lecturer','counsellor','market','status']
+		fields = ['state','name','depar','cls','lecturer','counsellor','market','status','sex','dormnumber','data','content']
+
+
 class StudentScores(ModelViewSet):
 	queryset = StudentScore.objects.all()  # 查询集
 	serializer_class = MarksListSerializer  # 序列化器
 	filter_backends = (filters.DjangoFilterBackend,)
 	filterset_class = MarksListsFilter
 
+	def list(self, request, *args, **kwargs):
+		self.serializer_class = MarksListSerializert
+		return super(StudentScores, self).list(request)
 	# 实现局部更新
 	def update(self, request, *args, **kwargs):
-		return super(StudentScore,self).update(request, partial=True)
+		# print(request.query_params.get('id'))
+		print(request.data)
+		if request.data['status']==1:
+			print(request.data['id'])
+			stu = StudentScore.objects.get(id=request.data['id'])
+			stu_id = stu.student_id
+			Marks = stu.Marks
+			edit = Student.objects.get(id=stu_id)
+			edit.score=edit.score-Marks
+			edit.save()
+		return super().update(request, partial=True)
+	#上传图片
+	def create(self, request, *args, **kwargs):
+		print(request.data)
+		content = request.data
+		file = request.FILES.get('awafile')
+		if file is None:
+			file= request.FILES.get('subfile')
+		# 构造图片保存路径
+		file_path = 'static/ScoreMarksImg/' + content['depar']+'_'+content['cls']+'_'+content['lecturer']+'_'\
+					+content['counsellor']+'_'+content['dormnumber']+'_'+content['bednumber']+'_'+content['counsellor']
+		# 保存图片
+		with open(file_path, 'wb+') as f:
+			f.write(file.read())
+			f.close()
+		request.data['avatar']=file_path
+		return super(StudentScores, self).create(request)
 
+class Voices(ModelViewSet):
+	queryset = Voice.objects.all()  # 查询集
+	serializer_class = VoiceSerializer  # 序列化器
+	# filter_backends = (filters.DjangoFilterBackend,)
+	# filterset_class = MarksListsFilter
+
+	# def list(self, request, *args, **kwargs):
+	# 	self.serializer_class = MarksListSerializert
+	# 	return super(StudentScores, self).list(request)
+	# 实现局部更新
+	# def update(self, request, *args, **kwargs):
+	# 	# print(request.query_params.get('id'))
+	# 	print(request.data)
+	# 	if request.data['status']==1:
+	# 		print(request.data['id'])
+	# 		stu = StudentScore.objects.get(id=request.data['id'])
+	# 		stu_id = stu.student_id
+	# 		Marks = stu.Marks
+	# 		edit = Student.objects.get(id=stu_id)
+	# 		edit.score=edit.score-Marks
+	# 		edit.save()
+	# 	return super().update(request, partial=True)
+	#上传图片
+	def create(self, request, *args, **kwargs):
+		print(request.data)
+		content = request.data
+		file = request.FILES.get('awafile')
+		if file is None:
+			file= request.FILES.get('subfile')
+		# 构造图片保存路径
+		file_path = 'static/ScoreMarksImg/' + content['depar']+'_'+content['cls']+'_'+content['lecturer']+'_'\
+					+content['counsellor']+'_'+content['dormnumber']+'_'+content['bednumber']+'_'+content['counsellor']
+		# 保存图片
+		with open(file_path, 'wb+') as f:
+			f.write(file.read())
+			f.close()
+		request.data['avatar']=file_path
+		return super(Voices, self).create(request)
 
 
 class BookInfoViewSet(GenericViewSet):

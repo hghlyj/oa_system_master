@@ -62,8 +62,12 @@ class StudentScore(models.Model):
     idcardnumber=models.CharField('身份证',max_length=60)
     depar=models.CharField('学院',max_length=60)
     cls = models.CharField('班级',max_length=60)
+
+
     lecturer=models.CharField('讲师',max_length=60)
     counsellor=models.CharField('导员',max_length=60)
+
+
     dormnumber=models.IntegerField('宿舍号')
     bednumber=models.IntegerField('床位号')
     address=models.CharField('家庭住址',max_length=60)
@@ -73,7 +77,8 @@ class StudentScore(models.Model):
     disciplinetype= models.ForeignKey(to=Disciplinetype,on_delete=models.SET_NULL,null=True,verbose_name='违纪类型')
     content=models.CharField('加减分项',max_length=200)
     Marks=models.IntegerField('分数')
-    avatar=models.FileField(upload_to='static/ScoreMarksImg', default='static/ScoreMarksImg/default.png', verbose_name='违纪图片',null=True)
+    avatar=models.FileField(upload_to='static/ScoreMarksImg', verbose_name='违纪图片',null=True)
+    # avatar = models.CharField(verbose_name='违纪图片', null=True,max_length=300)
     data=models.DateField('违纪(获奖)日期',auto_now_add=False,auto_now=False)
     course=models.CharField('课节',max_length=100,null=True)
     fdyoppose=models.CharField('申诉原因',max_length=100,null=True)
@@ -90,4 +95,14 @@ class StudentScore(models.Model):
 #     class Meta:
 #         db_table = 'files_storage'
 #         ordering = ['-id']
+
+
+class Voice(models.Model):
+
+    #   学生表中上传
+    # 学生id(学院  班级  讲师  导员)  类型（学生家长/导员家长）  是否审核   审核人   审核状态   审核备注   创建时间   审核时间    教学周期
+
+
+    avatar=models.FileField(upload_to='static/voice', verbose_name='语音文件',null=True)
+
 
